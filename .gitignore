@@ -1,0 +1,4 @@
+*.png
+try.py
+try.py~
+__pycache__/*
