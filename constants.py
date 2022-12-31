@@ -3,7 +3,14 @@ MAX_TICK = 30
 COST_SPEED = 1.0
 
 # 暂停策略常量
+# 两倍速-一杯速-子弹时间-逐帧
+STAGE1 = 40
+STAGE2 = 20
+STAGE3 = 3
 
+# 按键比例常量
+SPEED_X = 0.858
+SPEED_Y = 0.067
 
 # 干员区域比例常量
 OPERATOR_Y = 0.916

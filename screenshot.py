@@ -119,7 +119,7 @@ def get_current_tick(screenshot = None):
     if screenshot is None:
         screenshot = get_screenshot()
     costbar = screenshot.crop((COSTBAR_X1, COSTBAR_Y1, COSTBAR_X2, COSTBAR_Y2))
-    costbar.show()
+    # costbar.show()
     w, h = costbar.size
     pix = costbar.load()
     # count the number of white pixels
@@ -134,23 +134,106 @@ def pause():
     win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_SPACE, 0)
     win32api.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_SPACE, 0)
 
+# change game speed: press the *2 button in the game
+def change_speed():
+    x = int(GAME_X1 + SPEED_X * (GAME_X2 - GAME_X1))
+    y = int(GAME_Y1 + SPEED_Y * (GAME_Y2 - GAME_Y1))
+    # send a left click message to the game window
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
+
+# proceed to the next tick
+# invariants:
+# 1. the game is paused
+# 2. the game is under bullet time
+def proceed_one_tick():
+    # wait for the game to proceed to the next tick
+    curGameTime = GameTime()
+    while GameTime() == curGameTime:
+        pause()
+        time.sleep(0.05)
+        pause()
+
+
 # pause at the specified cost and tick
 # invariants:
 # 1. the game is paused
 # 2. the game is under speed 1
 def pause_at(cost, tick):
-    pause()
-    # first reach the previous cost
-    while get_current_cost() < cost:
-        # do nothing
-        pass
-    # then reach the previous tick
-    # todo
-    pause()
+    curGameTime = GameTime()
+    tarGameTime = GameTime(cost, tick)
 
-def click_operator(id):
+    is_paused = True
+    bullet_time_entered = False
+
+
+    print(tarGameTime - STAGE1)
+    if curGameTime < tarGameTime - STAGE1:
+        # means we are still far from the target
+        # proceed with speed 2
+
+        # change speed to 2
+        change_speed()
+        # resume if paused
+        if is_paused:
+            pause()
+            is_paused = False
+        # wait until the game time is closer to the target
+        while GameTime() < tarGameTime - STAGE1:
+            time.sleep(0.1)
+        # change speed back to 1
+        change_speed()
+    
+    if curGameTime < tarGameTime - STAGE2:
+        # means we are still a little away from the target
+        # proceed with speed 1
+
+        # resume if paused
+        if is_paused:
+            pause()
+            is_paused = False
+        # wait until the game time is closer to the target
+        while GameTime() < tarGameTime - STAGE2:
+            time.sleep(0.1)
+    
+    if curGameTime < tarGameTime - STAGE3:
+        # means we are kind of close to the target
+        # proceed with bullet time
+        
+        # switch to bullet time
+        click_operator()
+        bullet_time_entered = True
+        # resume if paused
+        if is_paused:
+            pause()
+            is_paused = False
+        # wait until the game time is closer to the target
+        while GameTime() < tarGameTime - STAGE3:
+            time.sleep(0.1)
+
+    if curGameTime < tarGameTime:
+        # means we are very close to the target
+        # proceed with one tick at a time
+        
+        # enter bullet time if not already in
+        if not bullet_time_entered:
+            click_operator()
+            bullet_time_entered = True
+        # pause if not paused
+        if not is_paused:
+            pause()
+            is_paused = True
+        # wait until the game time is closer to the target
+        while GameTime() < tarGameTime:
+            proceed_one_tick()
+        # exit bullet time
+        click_operator()
+
+
+
+def click_operator(id = 1, oper_num = 11):
     # click on the id-th operator
-    x = int(GAME_X1 + (11 - id + 0.5) / 11 * (GAME_X2 - GAME_X1))
+    x = int(GAME_X1 + (oper_num - id + 0.5) / oper_num * (GAME_X2 - GAME_X1))
     y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
     # send a left click message to the game window
     win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
@@ -171,7 +254,8 @@ if __name__ == "__main__":
 
     # get_screenshot().crop((GAME_X1, GAME_Y1, GAME_X2, GAME_Y2)).show()
 
-    for i in range(1, 13):
-        click_operator(i)
-        time.sleep(1)
+    # for i in range(1, 13):
+    #     click_operator(i)
+    #     time.sleep(1)
+    pause_at(62, 20)
     
