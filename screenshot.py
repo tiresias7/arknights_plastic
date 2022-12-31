@@ -10,35 +10,75 @@ from PIL import Image
 
 from constants import *
 
-# def window_capture(filename):
-#     # 窗口的类名可以用spy++工具获取
-#     # 窗口的标题可以用win32gui工具获取
+class GameTime:
+    def __init__(self, cost = None, tick = None):
+        if cost is None or tick is None:
+            screenshot = get_screenshot()
+            cost = get_current_cost(screenshot)
+            tick = get_current_tick(screenshot)
+        # self.cost = cost
+        # self.tick = tick
+        # if tick >= MAX_TICK:
+        self.cost = tick // MAX_TICK + cost
+        self.tick = tick % MAX_TICK
+        if self.cost < 0:
+            self.cost = 0
+            self.tick = 0
 
-#     # 根据窗口句柄获取窗口的设备上下文DC（Divice Context）
-#     hwndDC = win32gui.GetWindowDC(hwnd)
-#     # 根据窗口的DC获取mfcDC
-#     mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-#     # mfcDC创建可兼容的DC
-#     saveDC = mfcDC.CreateCompatibleDC()
-#     # 创建bigmap准备保存图片
-#     saveBitMap = win32ui.CreateBitmap()
-#     # 获取监控器信息
-#     MoniterDev = win32api.EnumDisplayMonitors(None, None)
-#     w = MoniterDev[0][2][2]
-#     h = MoniterDev[0][2][3]
-#     # print w,h　　　#图片大小
-#     # 为bitmap开辟空间
-#     saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
-#     # 高度saveDC，将截图保存到saveBitmap中
-#     saveDC.SelectObject(saveBitMap)
-#     # 截取从左上角（0，0）长宽为（w，h）的图片
-#     saveDC.BitBlt((0, 0), (w, h), mfcDC, (0, 0), win32con.SRCCOPY)
-#     saveBitMap.SaveBitmapFile(saveDC, filename)
+    def __str__(self):
+        return 'cost: {}, tick: {}'.format(self.cost, self.tick)
+
+    def __add__(self, other):
+        # first check if other is a GameTime object
+        if isinstance(other, GameTime):
+            return GameTime(self.cost + other.cost, self.tick + other.tick)
+        elif isinstance(other, int):
+            return GameTime(self.cost, self.tick + other)
+        else:
+            raise TypeError('unsupported operand type(s) for +: \'GameTime\' and \'{}\''.format(type(other)))
+
+    def __sub__(self, other):
+        if isinstance(other, GameTime):
+            return GameTime(self.cost - other.cost, self.tick - other.tick)
+        elif isinstance(other, int):
+            return GameTime(self.cost, self.tick - other)
+        else:
+            raise TypeError('unsupported operand type(s) for -: \'GameTime\' and \'{}\''.format(type(other)))
+    
+    def __lt__(self, other):
+        if isinstance(other, GameTime):
+            if self.cost < other.cost:
+                return True
+            elif self.cost == other.cost:
+                return self.tick < other.tick
+            else:
+                return False
+        else:
+            raise TypeError('unsupported operand type(s) for <: \'GameTime\' and \'{}\''.format(type(other)))
+
+    def __eq__(self, other):
+        if isinstance(other, GameTime):
+            return self.cost == other.cost and self.tick == other.tick
+        else:
+            raise TypeError('unsupported operand type(s) for ==: \'GameTime\' and \'{}\''.format(type(other)))
+
+    def __gt__(self, other):
+        return not self.__lt__(other) and not self.__eq__(other)
+
+    def __le__(self, other):
+        return self.__lt__(other) or self.__eq__(other)
+    
+    def __ge__(self, other):
+        return self.__gt__(other) or self.__eq__(other)
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 def get_screenshot():
     # 如果窗口被最小化，先将窗口解除最小化
-    # if win32gui.IsIconic(hwnd):
-    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+    if win32gui.IsIconic(hwnd):
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
     hwndDC = win32gui.GetWindowDC(hwnd)
     mfcDC = win32ui.CreateDCFromHandle(hwndDC)
     saveDC = mfcDC.CreateCompatibleDC()
@@ -61,43 +101,26 @@ def get_screenshot():
     win32gui.ReleaseDC(hwnd, hwndDC)
     return img
 
-# truncate captured image: 1640, 680 to 1798, 750
-# def truncate_image(image, x1, y1, x2, y2):
-#     img = Image.open(filename)
-#     img = img.crop((x1, y1, x2, y2))
-#     img.save(new_filename)
-#     return img
-
-# OCR: get the number on the image
-# def ocr_image(filename):
-#     from PIL import Image
-#     import pytesseract
-#     img = Image.open(filename)
-#     text = pytesseract.image_to_string(img)
-#     # print(text)
-#     # replace O with 0, l with 1, I with 1, S with 5, B with 8, Z with 2, Q with 0, G with 6, and remove all non-digit characters
-#     text = text.replace('O', '0').replace('l', '1').replace('|', '1').replace('I', '1').replace('S', '5').replace('B', '8').replace('Z', '2').replace('Q', '0').replace('G', '6')
-#     text = ''.join([i for i in text if i.isdigit()])
-#     return text
-
 # get the current cost in the game
-def get_current_cost():
-    cost = get_screenshot().crop((COST_X1, COST_Y1, COST_X2, COST_Y2))
+def get_current_cost(screenshot = None):
+    if screenshot is None:
+        screenshot = get_screenshot()
+    cost = screenshot.crop((COST_X1, COST_Y1, COST_X2, COST_Y2))
     import pytesseract
     text = pytesseract.image_to_string(cost)
     # print(text)
     # replace O with 0, l with 1, I with 1, | with 1, S with 5, B with 8, Z with 2, Q with 0, G with 6, and remove all non-digit characters
     text = text.replace('O', '0').replace('l', '1').replace('|', '1').replace('I', '1').replace('S', '5').replace('B', '8').replace('Z', '2').replace('Q', '0').replace('G', '6')
     text = ''.join([i for i in text if i.isdigit()])
-    return text
+    return int(text)
 
 # get the current tick in the game
-def get_current_tick():
-    costbar = get_screenshot().crop((COSTBAR_X1, COSTBAR_Y1, COSTBAR_X2, COSTBAR_Y2))
+def get_current_tick(screenshot = None):
+    if screenshot is None:
+        screenshot = get_screenshot()
+    costbar = screenshot.crop((COSTBAR_X1, COSTBAR_Y1, COSTBAR_X2, COSTBAR_Y2))
     costbar.show()
-    # get the width and height of the image
     w, h = costbar.size
-    # get the pixel map
     pix = costbar.load()
     # count the number of white pixels
     white = 0
@@ -106,14 +129,33 @@ def get_current_tick():
             white += 1
     return round(white / w * 29)
 
-# press space in the game window
-def press_space():
-    # find the window
-    # hwnd = win32gui.FindWindow(None, "明日方舟 - MuMu模拟器")
-    # print(hwnd)
-    # press the button IN THE WINDOW
+# pause the game: press space
+def pause():
     win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_SPACE, 0)
     win32api.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_SPACE, 0)
+
+# pause at the specified cost and tick
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+def pause_at(cost, tick):
+    pause()
+    # first reach the previous cost
+    while get_current_cost() < cost:
+        # do nothing
+        pass
+    # then reach the previous tick
+    # todo
+    pause()
+
+def click_operator(id):
+    # click on the id-th operator
+    x = int(GAME_X1 + (11 - id + 0.5) / 11 * (GAME_X2 - GAME_X1))
+    y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
+    # send a left click message to the game window
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
+
 
 if __name__ == "__main__":
     # make the window global
@@ -123,31 +165,13 @@ if __name__ == "__main__":
         exit()
     
     win32gui.SetForegroundWindow(hwnd)
-    
-    # get_screenshot().show()
-    # print(get_current_tick())
-    # window_capture("capture.png")
-    # truncate_image("capture.png", "cost.png", COST_X1, COST_Y1, COST_X2, COST_Y2)
-    # truncate_image("capture.png", "costbar.png", COSTBAR_X1, COSTBAR_Y1, COSTBAR_X2, COSTBAR_Y2)
-    press_space()
-    # S = {}
-    # while len(S) < 30:
-    #     window_capture("test.png")
-    #     get_cost_image("test.png", "cost.png")
-    #     get_cost_bar_image("test.png", "cost_bar.png")
-    #     # use absolute path
-    #     print(ocr_image("D:\\projects\\cost.png"))
-    #     (num, tick) = get_cost_bar_percentage("D:\\projects\\cost_bar.png")
-    #     S[num] = 1
-    #     print(tick)
-    #     print(round(tick * 29))
-    #     press_space()
-    #     time.sleep(0.1)
-    #     press_space()
-    # S = sorted(list(S))
-    # print(S)
-    # press_esc()
-    # wait for 0.1 second
-    # 
-    # press_space()
 
+    # gt = GameTime(3, -1) - -1
+    # print(gt)
+
+    # get_screenshot().crop((GAME_X1, GAME_Y1, GAME_X2, GAME_Y2)).show()
+
+    for i in range(1, 13):
+        click_operator(i)
+        time.sleep(1)
+    
