@@ -109,6 +109,7 @@ def get_current_cost(screenshot = None):
     import pytesseract
     text = pytesseract.image_to_string(cost)
     # print(text)
+    # cost.show()
     # replace O with 0, l with 1, I with 1, | with 1, S with 5, B with 8, Z with 2, Q with 0, G with 6, and remove all non-digit characters
     text = text.replace('O', '0').replace('l', '1').replace('|', '1').replace('I', '1').replace('S', '5').replace('B', '8').replace('Z', '2').replace('Q', '0').replace('G', '6')
     text = ''.join([i for i in text if i.isdigit()])
@@ -147,12 +148,16 @@ def change_speed():
 # 1. the game is paused
 # 2. the game is under bullet time
 def proceed_one_tick():
-    # wait for the game to proceed to the next tick
-    curGameTime = GameTime()
-    while GameTime() == curGameTime:
-        pause()
-        time.sleep(0.05)
-        pause()
+    # helper function to proceed to the next tick
+    def goto_next_tick():
+        # wait for the game to proceed to the next tick
+        curGameTime = GameTime()
+        while GameTime() == curGameTime:
+            pause()
+            time.sleep(0.05)
+            pause()
+    
+    goto_next_tick()
 
 
 # pause at the specified cost and tick
@@ -166,17 +171,17 @@ def pause_at(cost, tick):
     is_paused = True
     bullet_time_entered = False
 
-
-    print(tarGameTime - STAGE1)
     if curGameTime < tarGameTime - STAGE1:
         # means we are still far from the target
         # proceed with speed 2
 
         # change speed to 2
         change_speed()
+        time.sleep(0.1)
         # resume if paused
         if is_paused:
             pause()
+            time.sleep(0.1)
             is_paused = False
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime - STAGE1:
@@ -191,6 +196,7 @@ def pause_at(cost, tick):
         # resume if paused
         if is_paused:
             pause()
+            time.sleep(0.1)
             is_paused = False
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime - STAGE2:
@@ -203,9 +209,11 @@ def pause_at(cost, tick):
         # switch to bullet time
         click_operator()
         bullet_time_entered = True
+        time.sleep(0.1)
         # resume if paused
         if is_paused:
             pause()
+            time.sleep(0.1)
             is_paused = False
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime - STAGE3:
@@ -215,14 +223,16 @@ def pause_at(cost, tick):
         # means we are very close to the target
         # proceed with one tick at a time
         
-        # enter bullet time if not already in
-        if not bullet_time_entered:
-            click_operator()
-            bullet_time_entered = True
         # pause if not paused
         if not is_paused:
             pause()
+            time.sleep(0.1)
             is_paused = True
+        # switch to bullet time if not in bullet time
+        if not bullet_time_entered:
+            click_operator()
+            bullet_time_entered = True
+            time.sleep(0.1)
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime:
             proceed_one_tick()
@@ -257,5 +267,5 @@ if __name__ == "__main__":
     # for i in range(1, 13):
     #     click_operator(i)
     #     time.sleep(1)
-    pause_at(62, 20)
+    pause_at(1, 10)
     

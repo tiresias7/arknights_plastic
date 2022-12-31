@@ -6,7 +6,7 @@ COST_SPEED = 1.0
 # 两倍速-一杯速-子弹时间-逐帧
 STAGE1 = 40
 STAGE2 = 20
-STAGE3 = 3
+STAGE3 = 4
 
 # 按键比例常量
 SPEED_X = 0.858
