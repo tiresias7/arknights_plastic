@@ -106,12 +106,25 @@ def get_current_cost(screenshot = None):
     if screenshot is None:
         screenshot = get_screenshot()
     cost = screenshot.crop((COST_X1, COST_Y1, COST_X2, COST_Y2))
+    # change all pixels ...
+    for i in range(cost.size[0]):
+        for j in range(cost.size[1]):
+            if cost.getpixel((i, j)) < (200, 200, 200):
+                cost.putpixel((i, j), (0, 0, 0))
+            else:
+                cost.putpixel((i, j), (255, 255, 255))
+    
+    # # raise dpi to exactly 300
+    # cost = cost.resize((cost.size[0] * 5, cost.size[1] * 5), Image.ANTIALIAS)
     import pytesseract
-    text = pytesseract.image_to_string(cost)
-    # print(text)
-    # cost.show()
-    # replace O with 0, l with 1, I with 1, | with 1, S with 5, B with 8, Z with 2, Q with 0, G with 6, and remove all non-digit characters
-    text = text.replace('O', '0').replace('l', '1').replace('|', '1').replace('I', '1').replace('S', '5').replace('B', '8').replace('Z', '2').replace('Q', '0').replace('G', '6')
+    text = pytesseract.image_to_string(cost, lang='arknights_digit', config='--psm 6')
+    print(text)
+    # save the cost image (while testing)
+    # cost.save('cost/cost9.png')
+    # replace all sorts of misinterpretation, and remove all non-digit characters
+    # text = text.replace('O', '0').replace('Q', '0').replace('@', '0').replace('©', '0')
+    # text = text.replace('l', '1').replace('|', '1').replace('I', '1')
+    # text = text.replace('S', '5').replace('B', '8').replace('Z', '2').replace('G', '6')
     text = ''.join([i for i in text if i.isdigit()])
     return int(text)
 
@@ -240,15 +253,71 @@ def pause_at(cost, tick):
         click_operator()
 
 
-
+# click on the id-th operator
 def click_operator(id = 1, oper_num = 11):
     # click on the id-th operator
-    x = int(GAME_X1 + (oper_num - id + 0.5) / oper_num * (GAME_X2 - GAME_X1))
-    y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
+    oper_x = int(GAME_X1 + (oper_num - id + 0.5) / oper_num * (GAME_X2 - GAME_X1))
+    oper_y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
     # send a left click message to the game window
-    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
-    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(x, y))
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y))
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y))
 
+# pause the game: press escape
+def esc():
+    win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_ESCAPE, 0)
+    win32api.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_ESCAPE, 0)
+
+
+# deploy the id-th operator
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
+    # click on the id-th operator
+    time.sleep(0.5)
+    click_operator(id, oper_num)
+    time.sleep(1)
+
+    # resume
+    pause()
+
+    oper_x = int(GAME_X1 + (oper_num - id + 0.5) / oper_num * (GAME_X2 - GAME_X1))
+    oper_y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
+
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y))
+    time.sleep(0.05) # todo: how to make this more accurate?
+    # move the mouse upward a little bit
+    win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y - 20))
+
+    # pause
+    esc()
+
+    # click on the target position
+    time.sleep(0.5)
+    win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    time.sleep(0.5)
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+
+    # pull to the target direction
+    if dir == UP:
+        delta_x = 0
+        delta_y = -200
+    elif dir == DOWN:
+        delta_x = 0
+        delta_y = 200
+    elif dir == LEFT:
+        delta_x = -200
+        delta_y = 0
+    elif dir == RIGHT:
+        delta_x = 200
+        delta_y = 0
+    time.sleep(0.5)
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    time.sleep(0.5)
+    win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
+    time.sleep(0.5)
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
+    
 
 if __name__ == "__main__":
     # make the window global
@@ -259,6 +328,8 @@ if __name__ == "__main__":
     
     win32gui.SetForegroundWindow(hwnd)
 
+    
+
     # gt = GameTime(3, -1) - -1
     # print(gt)
 
@@ -267,5 +338,19 @@ if __name__ == "__main__":
     # for i in range(1, 13):
     #     click_operator(i)
     #     time.sleep(1)
-    pause_at(1, 10)
+    # pause_at(50, 0)
+
+    pause_at(16, 0)
+    time.sleep(0.5)
+    deploy_operator(1070, 570, LEFT, 2)
+    time.sleep(0.5)
+    pause_at(13, 5)
+    time.sleep(0.5)
+    deploy_operator(700, 510, RIGHT, 1)
+    time.sleep(0.5)
+    pause_at(4, 0)
+    time.sleep(0.5)
+    deploy_operator(945, 480, UP, 1)
+
+    # get_current_cost()
     

@@ -8,6 +8,12 @@ STAGE1 = 40
 STAGE2 = 20
 STAGE3 = 4
 
+# 方向常量
+UP = 0
+DOWN = 1
+LEFT = 2
+RIGHT = 3
+
 # 按键比例常量
 SPEED_X = 0.858
 SPEED_Y = 0.067

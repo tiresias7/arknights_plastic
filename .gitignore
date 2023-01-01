@@ -1,3 +1,4 @@
 *.png
 try.py
 __pycache__/*
+cost/*

@@ -19,3 +19,10 @@ SKILL（技能）：部署位置的id
 RETREAT（撤退）：部署位置的id
 此外还需提供部署位置id对应部署位置的坐标（注意必须是斜着的坐标）
 这pytesseract的OCR实在太烂了得换一个 也可能是我不会用
+
+12.31
+训练了专门的数据集 使用了jTessBoxEditor
+参考网站：https://www.mspring.org/2018/09/28/Tesseract%E5%88%86%E4%BA%AB/
+参数：https://muthu.co/all-tesseract-ocr-options/
+esc可以按了 猜测是因为将窗口设定为了活动状态
+已经可以做到暂停部署了 但是精确度和具体哪里需要sleep仍需优化
