@@ -4,9 +4,9 @@ COST_SPEED = 1.0
 
 # 暂停策略常量
 # 两倍速-一杯速-子弹时间-逐帧
-STAGE1 = 60
-STAGE2 = 30
-STAGE3 = 5
+STAGE1 = 50
+STAGE2 = 25
+STAGE3 = 4
 
 # 暂停时间常量
 WAIT_BETWEEN_KEYS = 0.1
