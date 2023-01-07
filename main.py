@@ -184,13 +184,12 @@ def proceed_one_tick():
     goto_next_tick()
 
 
-# pause at the specified cost and tick
+# pause at the specified GameTime
 # invariants:
 # 1. the game is paused
 # 2. the game is under speed 1
-def pause_at(cost, tick):
+def pause_at(tarGameTime):
     curGameTime = GameTime()
-    tarGameTime = GameTime(cost, tick)
 
     is_paused = True
     bullet_time_entered = False
@@ -267,6 +266,16 @@ def pause_at(cost, tick):
         bullet_time_entered = False
         wait_between_keys()
 
+    if curGameTime > tarGameTime:
+        # give a warning
+        print('Warning: pause_at goes past the target time: ' + str(tarGameTime))
+    
+    wait_for_feedback()
+
+# pause at the specified tick (another version of pause_at)
+def pause_at_CT(cost, tick):
+    pause_at(GameTime(cost, tick))
+
 
 # click on the id-th operator
 def click_operator(id = 1, oper_num = 11):
@@ -289,11 +298,11 @@ def esc():
 # 2. the game is under speed 1
 # guaranteed to advance one tick
 def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
+    beginTime = GameTime()
+
     # click on the id-th operator
     click_operator(id, oper_num)
     wait_for_feedback()
-
-    beginTime = GameTime()
 
     while True:
         # resume
@@ -316,7 +325,7 @@ def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
         endTime = GameTime()
         if endTime > beginTime:
             if endTime > beginTime + 1:
-                print("Warning: more than one tick has passed when deploying operator")
+                print("Warning: more than one tick has passed when deploying operator at " + str(beginTime + 1))
             break
 
     # click on the target position
@@ -347,6 +356,117 @@ def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
     win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
     wait_for_feedback()
 
+# retreat an operator
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+# guaranteed to advance one tick
+def retreat_operator(tar_x, tar_y):
+    beginTime = GameTime()
+
+    # enter bullet time
+    click_operator()
+    wait_for_feedback()
+
+    # resume
+    pause()
+
+    # click on the operator to retreat
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    wait_between_keys()
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    # now we are still in bullet time
+
+    # pause
+    esc()
+    wait_for_feedback()
+
+    curTime = GameTime()
+    if curTime > beginTime:
+        if curTime > beginTime + 1:
+            print("Warning: more than one tick has passed when retreating operator at " + str(beginTime + 1))
+    else:
+        proceed_one_tick()
+    
+    # click on the retreat button
+    retreat_x = int(GAME_X1 + (GAME_X2 - GAME_X1) * RETREAT_X)
+    retreat_y = int(GAME_Y1 + (GAME_Y2 - GAME_Y1) * RETREAT_Y)
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(retreat_x, retreat_y))
+    wait_between_keys()
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(retreat_x, retreat_y))
+    wait_for_feedback()
+
+# start an operator's skill
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+# guaranteed to advance one tick
+def skill_operator(tar_x, tar_y):
+    beginTime = GameTime()
+
+    # enter bullet time
+    click_operator()
+    wait_for_feedback()
+
+    # resume
+    pause()
+
+    # click on the operator to start skill
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    wait_between_keys()
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    # now we are still in bullet time
+
+    # pause
+    esc()
+    wait_for_feedback()
+
+    curTime = GameTime()
+    if curTime > beginTime:
+        if curTime > beginTime + 1:
+            print("Warning: more than one tick has passed when starting skill of operator at " + str(beginTime + 1))
+    else:
+        proceed_one_tick()
+    
+    # click on the skill button
+    skill_x = int(GAME_X1 + (GAME_X2 - GAME_X1) * SKILL_X)
+    skill_y = int(GAME_Y1 + (GAME_Y2 - GAME_Y1) * SKILL_Y)
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(skill_x, skill_y))
+    wait_between_keys()
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(skill_x, skill_y))
+    wait_for_feedback()
+
+
+
+
+
+# INTERFACE: deploy an operator
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+def deploy(cost, tick, tar_x, tar_y, dir, id = 1, oper_num = 11):
+    pause_at(GameTime(cost, tick) - 1)
+    deploy_operator(tar_x, tar_y, dir, id, oper_num)
+
+
+# INTERFACE: retreat an operator
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+def retreat(cost, tick, tar_x, tar_y):
+    pause_at(GameTime(cost, tick) - 1)
+    retreat_operator(tar_x, tar_y)
+
+# INTERFACE: start an operator's skill
+# invariants:
+# 1. the game is paused
+# 2. the game is under speed 1
+def skill(cost, tick, tar_x, tar_y):
+    pause_at(GameTime(cost, tick) - 1)
+    skill_operator(tar_x, tar_y)
+
+
+
 if __name__ == "__main__":
     # make the window global
     hwnd = win32gui.FindWindow(None, "明日方舟 - MuMu模拟器")
@@ -374,7 +494,7 @@ if __name__ == "__main__":
     # time.sleep(0.5)
     # pause_at(13, 5)
     # time.sleep(0.5)
-    deploy_operator(700, 510, RIGHT, 10)
+    # deploy_operator(700, 510, RIGHT, 10)
     # time.sleep(0.5)
     # pause_at(4, 0)
     # time.sleep(0.5)
@@ -383,4 +503,8 @@ if __name__ == "__main__":
     # proceed_one_tick()
 
     # get_current_cost()
+
+    # retreat(9, 0, 1060, 344)
+
+    # skill(15, 0, 1070, 570)
     
