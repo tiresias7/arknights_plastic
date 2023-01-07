@@ -74,6 +74,14 @@ class GameTime:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+def wait_between_keys():
+    time.sleep(WAIT_BETWEEN_KEYS)
+
+def wait_for_feedback():
+    time.sleep(WAIT_FOR_FEEDBACK)
+
+def take_a_nap():
+    time.sleep(TAKE_A_NAP)
 
 def get_screenshot():
     # 如果窗口被最小化，先将窗口解除最小化
@@ -167,8 +175,9 @@ def proceed_one_tick():
         curGameTime = GameTime()
         while GameTime() == curGameTime:
             pause()
-            time.sleep(0.05)
+            wait_between_keys()
             pause()
+            wait_for_feedback()
     
     goto_next_tick()
 
@@ -190,17 +199,18 @@ def pause_at(cost, tick):
 
         # change speed to 2
         change_speed()
-        time.sleep(0.1)
+        wait_between_keys()
         # resume if paused
         if is_paused:
             pause()
-            time.sleep(0.1)
+            wait_between_keys()
             is_paused = False
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime - STAGE1:
-            time.sleep(0.1)
+            take_a_nap()
         # change speed back to 1
         change_speed()
+        wait_between_keys()
     
     if curGameTime < tarGameTime - STAGE2:
         # means we are still a little away from the target
@@ -209,11 +219,11 @@ def pause_at(cost, tick):
         # resume if paused
         if is_paused:
             pause()
-            time.sleep(0.1)
+            wait_between_keys()
             is_paused = False
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime - STAGE2:
-            time.sleep(0.1)
+            take_a_nap()
     
     if curGameTime < tarGameTime - STAGE3:
         # means we are kind of close to the target
@@ -222,15 +232,16 @@ def pause_at(cost, tick):
         # switch to bullet time
         click_operator()
         bullet_time_entered = True
-        time.sleep(0.1)
+        wait_between_keys()
         # resume if paused
         if is_paused:
             pause()
-            time.sleep(0.1)
+            wait_between_keys()
             is_paused = False
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime - STAGE3:
-            time.sleep(0.1)
+            take_a_nap()
+        wait_between_keys()
 
     if curGameTime < tarGameTime:
         # means we are very close to the target
@@ -239,18 +250,20 @@ def pause_at(cost, tick):
         # pause if not paused
         if not is_paused:
             pause()
-            time.sleep(0.1)
+            wait_between_keys()
             is_paused = True
         # switch to bullet time if not in bullet time
         if not bullet_time_entered:
             click_operator()
             bullet_time_entered = True
-            time.sleep(0.1)
+            wait_between_keys()
         # wait until the game time is closer to the target
         while GameTime() < tarGameTime:
             proceed_one_tick()
         # exit bullet time
         click_operator()
+        bullet_time_entered = False
+        wait_between_keys()
 
 
 # click on the id-th operator
@@ -274,9 +287,8 @@ def esc():
 # 2. the game is under speed 1
 def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
     # click on the id-th operator
-    time.sleep(0.5)
     click_operator(id, oper_num)
-    time.sleep(1)
+    wait_for_feedback()
 
     # resume
     pause()
@@ -285,17 +297,19 @@ def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
     oper_y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
 
     win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y))
-    time.sleep(0.05) # todo: how to make this more accurate?
+    wait_between_keys()
+    # time.sleep(0.05) # todo: how to make this more accurate?
     # move the mouse upward a little bit
     win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y - 20))
 
     # pause
     esc()
+    wait_for_feedback()
 
     # click on the target position
-    time.sleep(0.5)
     win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
-    time.sleep(0.5)
+    # time.sleep(0.1)
+    wait_between_keys()
     win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
 
     # pull to the target direction
@@ -311,13 +325,14 @@ def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
     elif dir == RIGHT:
         delta_x = 200
         delta_y = 0
-    time.sleep(0.5)
-    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
-    time.sleep(0.5)
-    win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
-    time.sleep(0.5)
-    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
     
+    wait_for_feedback()
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
+    wait_between_keys()
+    win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
+    wait_between_keys()
+    win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x + delta_x, tar_y + delta_y))
+    wait_for_feedback()
 
 if __name__ == "__main__":
     # make the window global
@@ -340,17 +355,19 @@ if __name__ == "__main__":
     #     time.sleep(1)
     # pause_at(50, 0)
 
-    pause_at(16, 0)
-    time.sleep(0.5)
-    deploy_operator(1070, 570, LEFT, 2)
-    time.sleep(0.5)
-    pause_at(13, 5)
-    time.sleep(0.5)
-    deploy_operator(700, 510, RIGHT, 1)
-    time.sleep(0.5)
-    pause_at(4, 0)
-    time.sleep(0.5)
-    deploy_operator(945, 480, UP, 1)
+    # pause_at(16, 0)
+    # time.sleep(0.5)
+    deploy_operator(1070, 570, LEFT, 4)
+    # time.sleep(0.5)
+    # pause_at(13, 5)
+    # time.sleep(0.5)
+    # deploy_operator(700, 510, RIGHT, 1)
+    # time.sleep(0.5)
+    # pause_at(4, 0)
+    # time.sleep(0.5)
+    # deploy_operator(945, 480, UP, 1)
+
+    # proceed_one_tick()
 
     # get_current_cost()
     
