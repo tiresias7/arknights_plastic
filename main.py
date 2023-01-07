@@ -74,6 +74,8 @@ class GameTime:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
+
 def wait_between_keys():
     time.sleep(WAIT_BETWEEN_KEYS)
 
@@ -285,45 +287,56 @@ def esc():
 # invariants:
 # 1. the game is paused
 # 2. the game is under speed 1
+# guaranteed to advance one tick
 def deploy_operator(tar_x, tar_y, dir, id = 1, oper_num = 11):
     # click on the id-th operator
     click_operator(id, oper_num)
     wait_for_feedback()
 
-    # resume
-    pause()
+    beginTime = GameTime()
 
-    oper_x = int(GAME_X1 + (oper_num - id + 0.5) / oper_num * (GAME_X2 - GAME_X1))
-    oper_y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
+    while True:
+        # resume
+        pause()
 
-    win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y))
-    wait_between_keys()
-    # time.sleep(0.05) # todo: how to make this more accurate?
-    # move the mouse upward a little bit
-    win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y - 20))
+        oper_x = int(GAME_X1 + (oper_num - id + 0.5) / oper_num * (GAME_X2 - GAME_X1))
+        oper_y = int(GAME_Y1 + OPERATOR_Y * (GAME_Y2 - GAME_Y1))
 
-    # pause
-    esc()
-    wait_for_feedback()
+        win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y))
+        wait_between_keys()
+        # time.sleep(0.05) # todo: how to make this more accurate?
+        # move the mouse upward a little bit
+        win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(oper_x, oper_y - 20))
+
+        # pause
+        esc()
+        wait_for_feedback()
+
+        # check if a tick has passed
+        endTime = GameTime()
+        if endTime > beginTime:
+            if endTime > beginTime + 1:
+                print("Warning: more than one tick has passed when deploying operator")
+            break
 
     # click on the target position
     win32api.SendMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
-    # time.sleep(0.1)
     wait_between_keys()
     win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(tar_x, tar_y))
 
     # pull to the target direction
+    drag_distance = int((GAME_Y2 - GAME_Y1) * DRAG)
     if dir == UP:
         delta_x = 0
-        delta_y = -200
+        delta_y = -drag_distance
     elif dir == DOWN:
         delta_x = 0
-        delta_y = 200
+        delta_y = drag_distance
     elif dir == LEFT:
-        delta_x = -200
+        delta_x = -drag_distance
         delta_y = 0
     elif dir == RIGHT:
-        delta_x = 200
+        delta_x = drag_distance
         delta_y = 0
     
     wait_for_feedback()
@@ -357,11 +370,11 @@ if __name__ == "__main__":
 
     # pause_at(16, 0)
     # time.sleep(0.5)
-    deploy_operator(1070, 570, LEFT, 4)
+    # deploy_operator(1070, 570, LEFT, 4)
     # time.sleep(0.5)
     # pause_at(13, 5)
     # time.sleep(0.5)
-    # deploy_operator(700, 510, RIGHT, 1)
+    deploy_operator(700, 510, RIGHT, 10)
     # time.sleep(0.5)
     # pause_at(4, 0)
     # time.sleep(0.5)
